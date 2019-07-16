@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!-- https://bl.ocks.org/mbostock/4699541 -->
+<meta charset="utf-8">
+	<style>
+		.background {
+		  fill: none;
+		  pointer-events: all;
+		}
+
+		.feature {
+		  fill: #ccc;
+		  cursor: pointer;
+		}
+
+		.feature.active {
+		  fill: orange;
+		}
+
+		.mesh {
+		  fill: none;
+		  stroke: #fff;
+		  stroke-linecap: round;
+		  stroke-linejoin: round;
+		}
+	</style>
+	<body>
+		<script src="https://d3js.org/d3.v5.min.js"></script>
+		<script src="https://d3js.org/topojson.v1.min.js"></script>
+		<script>
+
+			var width = 960,
+				height = 500,
+				active = d3.select(null);
+
+			var projection = d3.geoAlbersUsa()
+				.scale(1000)
+				.translate([width / 2, height / 2]);
+
+			var path = d3.geoPath()
+				.projection(projection);
+
+			var svg = d3.select("body").append("svg")
+				.attr("width", width)
+				.attr("height", height);
+
+			svg.append("rect")
+				.attr("class", "background")
+				.attr("width", width)
+				.attr("height", height)
+				.on("click", reset);
+
+			var g = svg.append("g")
+				.style("stroke-width", "1.5px");
+						
+			Promise.all([d3.json("https://gist.githubusercontent.com/mbostock/4090846/raw/us.json"), d3.csv("https://raw.githubusercontent.com/jonkatz2/quarter/master/states.csv")]).then(function(files) {
+			  
+			  var us = files[0];
+			  var uskey = files[1];
+			  var keyid = d3.map(uskey, function(d){return d.id/1000;}).keys();	
+			  
+			  g.selectAll("path")
+				  .data(topojson.feature(us, us.objects.states).features)
+				.enter().append("path")
+				  .attr("d", path)
+				  .attr("class", "feature")
+				  .attr("name", function(d) { return uskey[keyid.indexOf(String(d.id))].name; }) 
+				  .on("click", clicked);
+
+			  g.append("path")
+				  .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+				  .attr("class", "mesh")
+				  .attr("d", path);
+			}).catch(function(error) {
+			  throw error;
+			});
+
+			function clicked(d) {
+			  if (active.node() === this) {
+					d3.select("iframe").attr("src", "");
+					return reset();
+			  }
+			  active.classed("active", false);
+			  active = d3.select(this).classed("active", true);
+
+			  var bounds = path.bounds(d),
+				  dx = bounds[1][0] - bounds[0][0],
+				  dy = bounds[1][1] - bounds[0][1],
+				  x = (bounds[0][0] + bounds[1][0]) / 2,
+				  y = (bounds[0][1] + bounds[1][1]) / 2,
+				  scale = .9 / Math.max(dx / width, dy / height),
+				  translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+			  g.transition()
+				  .duration(750)
+				  .style("stroke-width", 1.5 / scale + "px")
+				  .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+				  
+			  // console.log(d3.select(this).attr("name"));
+			  var state = d3.select(this).attr("name");
+			  var stateurl = "https://en.wikipedia.org/wiki/" + state.replace(" ", "_");
+			  d3.select("iframe").attr("src", stateurl);
+			}
+
+			function reset() {
+			  active.classed("active", false);
+			  active = d3.select(null);
+
+			  g.transition()
+				  .duration(750)
+				  .style("stroke-width", "1.5px")
+				  .attr("transform", "");
+			}
+		</script>
+		<iframe src="" style="width:100%;height:600px;"></iframe>
+	</body>
+</html>
