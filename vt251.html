@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- variation of https://bl.ocks.org/mbostock/4699541 and https://bl.ocks.org/mbostock/5126418-->
+<!-- https://bl.ocks.org/mbostock/4699541, https://bl.ocks.org/mbostock/5126418 -->
 <meta charset="utf-8">
 	<style>
 		.background {
@@ -25,6 +25,9 @@
 		
 		.d3tooltip {
 			position: absolute;
+			background-color: #333;
+			color: #FFF;
+			border-radius: 4px;
 		}
 	</style>
 	<body>
@@ -40,7 +43,7 @@
 				// .scale(1000)
 				// .translate([width / 2, height / 2]);
 			// var projection = d3.geoTransverseMercator()
-			  // .rotate([72 + 30 / 60, -42 - 30 / 60])
+			  // .rotate([74 + 30 / 60, -38 - 50 / 60])
 			  // .fitExtent([[20, 20], [940, 1180]], land);
 			
 			// var path = d3.geoPath()
@@ -80,21 +83,23 @@
 					.style("opacity", 1);
 			};
 			
+			var zoomcenter = [width/2, height/2];
+			var zoomscale = 1;
+			
 			var mousemove = function(d) {
-				// var zoomed = d3.select(".active")
-				// zoomed = zoomed._groups[0][0] != null;
+				var zoomed = d3.select(".active")
+				zoomed = zoomed._groups[0][0] != null;
 					
 				var loc = d3.mouse(this);
-				// if(zoomed) {
-					// var dx = loc[0] - zoomcenter[0],
-						// dy = loc[1] - zoomcenter[1],
-						// tx = dx * zoomscale + width / 2,
-						// ty = dy * zoomscale + height / 2;
+				if(zoomed) {
+					var dx = loc[0] - zoomcenter[0],
+						dy = loc[1] - zoomcenter[1],
+						tx = dx * zoomscale + width / 2,
+						ty = dy * zoomscale + height / 2;
 						
-					// loc[0] = tx;
-					// loc[1] = ty;
-				// };
-				// console.log(d.properties.TOWNNAMEMC);
+					loc[0] = tx;
+					loc[1] = ty;
+				};
 				tooltip
 					.html(d.properties.TOWNNAMEMC)
 					.style("left", (loc[0]+15) + "px")
@@ -118,7 +123,7 @@
 				var tpj = topojson.feature(vt, vt.objects.foo);
 				
 				var projection = d3.geoTransverseMercator()
-				  .rotate([74 + 30 / 60, -38 - 50 / 60])
+				  .rotate([72 + 30 / 60, -42 - 30 / 60])
 				  .fitExtent([[20, 20], [800, 1000]], tpj);
 				
 				path = d3.geoPath()
@@ -160,10 +165,10 @@
 				  y = (bounds[0][1] + bounds[1][1]) / 2,
 				  scale = .9 / Math.max(dx / width, dy / height),
 				  translate = [width / 2 - scale * x, height / 2 - scale * y];
-
-			  zoomscale = scale;
+			  
 			  zoomcenter = [x, y];
-			  			  
+			  zoomscale = scale;
+			  
 			  g.transition()
 				  .duration(750)
 				  .style("stroke-width", 1.5 / scale + "px")
