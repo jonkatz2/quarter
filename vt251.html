@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<!-- https://bl.ocks.org/mbostock/4699541 -->
+<meta charset="utf-8">
+	<style>
+		.background {
+		  fill: none;
+		  pointer-events: all;
+		}
+
+		.feature {
+		  fill: #ccc;
+		  cursor: pointer;
+		}
+
+		.feature.active {
+		  fill: orange;
+		}
+
+		.mesh {
+		  fill: none;
+		  stroke: #fff;
+		  stroke-linecap: round;
+		  stroke-linejoin: round;
+		}
+		
+		.d3tooltip {
+			position: absolute;
+		}
+	</style>
+	<body>
+		<script src="https://d3js.org/d3.v5.min.js"></script>
+		<script src="https://d3js.org/topojson.v1.min.js"></script>
+		<script>
+
+			var width = 800,
+				height = 1000,
+				active = d3.select(null);
+
+			// var projection = d3.geoAlbersUsa()
+				// .scale(1000)
+				// .translate([width / 2, height / 2]);
+			// var projection = d3.geoTransverseMercator()
+			  // .rotate([74 + 30 / 60, -38 - 50 / 60])
+			  // .fitExtent([[20, 20], [940, 1180]], land);
+			
+			// var path = d3.geoPath()
+				// .projection(projection);
+				
+			var destinations = d3.select("body").append("div")
+				.attr("id", "destinations")
+				.style("position", "relative")
+				.style("z-index", "1");
+				
+			var svg = destinations.append("svg")
+				.attr("width", width)
+				.attr("height", height);
+
+			svg.append("rect")
+				.attr("class", "background")
+				.attr("width", width)
+				.attr("height", height)
+				.on("click", reset);
+
+			var g = svg.append("g")
+				.style("stroke-width", "1.5px");
+			
+			// create a tooltip
+			var tooltip = d3.select("#destinations")
+				.append("div")
+				.style("opacity", 0)
+				.attr("class", "d3tooltip")
+				.style("padding", "5px");
+			
+			var mouseover = function(d) {
+				tooltip
+					.style("opacity", 1)
+					.style("z-index", "1");
+				d3.select(this)
+					.style("stroke", "black")
+					.style("opacity", 1);
+			};
+			
+			var mousemove = function(d) {
+				// var zoomed = d3.select(".active")
+				// zoomed = zoomed._groups[0][0] != null;
+					
+				var loc = d3.mouse(this);
+				// if(zoomed) {
+					// var dx = loc[0] - zoomcenter[0],
+						// dy = loc[1] - zoomcenter[1],
+						// tx = dx * zoomscale + width / 2,
+						// ty = dy * zoomscale + height / 2;
+						
+					// loc[0] = tx;
+					// loc[1] = ty;
+				// };
+				// console.log(d.properties.TOWNNAMEMC);
+				tooltip
+					.html(d.properties.TOWNNAMEMC)
+					.style("left", (loc[0]+15) + "px")
+					.style("top", (loc[1])-5 + "px");
+			};
+			
+			var mouseleave = function(d) {
+				tooltip
+					.style("opacity", 0)
+					.style("z-index", "-1");
+				d3.select(this)
+					.style("stroke", "none")
+					.style("opacity", 0.8);
+			};
+			
+			var touchstart = mousemove;
+			var touchend = mouseleave;	
+			
+			d3.json("https://raw.githubusercontent.com/jonkatz2/quarter/master/vt251_sm.json").then(function(vt) {
+			  
+				var tpj = topojson.feature(vt, vt.objects.foo);
+				
+				var projection = d3.geoTransverseMercator()
+				  .rotate([74 + 30 / 60, -38 - 50 / 60])
+				  .fitExtent([[20, 20], [800, 1000]], tpj);
+				
+				path = d3.geoPath()
+					.projection(projection);
+				
+				g.selectAll("path")
+					.data(tpj.features)
+					.enter().append("path")
+						.attr("d", path)
+						.attr("class", "feature")
+						.on("click", clicked)
+						.on("mouseover", mouseover)
+						.on("mousemove", mousemove)
+						.on("mouseleave", mouseleave)
+						.on("touchstart", touchstart)
+						.on("touchend", touchend);
+
+				g.append("path")
+					.datum(topojson.mesh(vt, vt.objects.foo, function(a, b) { return a !== b; }))
+					.attr("class", "mesh")
+					.attr("d", path);
+				
+									
+			}).catch(function(error) {
+				throw error;
+			});
+			
+			function clicked(d) {
+			  if (active.node() === this) {
+					return reset();
+			  }
+			  active.classed("active", false);
+			  active = d3.select(this).classed("active", true);
+
+			  var bounds = path.bounds(d),
+				  dx = bounds[1][0] - bounds[0][0],
+				  dy = bounds[1][1] - bounds[0][1],
+				  x = (bounds[0][0] + bounds[1][0]) / 2,
+				  y = (bounds[0][1] + bounds[1][1]) / 2,
+				  scale = .9 / Math.max(dx / width, dy / height),
+				  translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+			  zoomscale = scale;
+			  zoomcenter = [x, y];
+			  			  
+			  g.transition()
+				  .duration(750)
+				  .style("stroke-width", 1.5 / scale + "px")
+				  .attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+				
+			}
+
+			function reset() {
+			  active.classed("active", false);
+			  active = d3.select(null);
+			  
+			  g.transition()
+				  .duration(750)
+				  .style("stroke-width", "1.5px")
+				  .attr("transform", "");
+			}
+		</script>
+	</body>
+</html>
